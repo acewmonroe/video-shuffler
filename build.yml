@@ -19,14 +19,12 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: |
-          cd video-shuffler-app/video-shuffler
-          npm install
+        working-directory: ${{ github.workspace }}\video-shuffler-app\video-shuffler
+        run: npm install
 
       - name: Build Windows exe
-        run: |
-          cd video-shuffler-app/video-shuffler
-          npm run build-win
+        working-directory: ${{ github.workspace }}\video-shuffler-app\video-shuffler
+        run: npm run build-win
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
@@ -34,3 +32,4 @@ jobs:
           name: Video-Shuffler-Windows
           path: video-shuffler-app/video-shuffler/dist/*.exe
           retention-days: 30
+        
