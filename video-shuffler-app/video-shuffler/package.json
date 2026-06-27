@@ -1,0 +1,52 @@
+{
+  "name": "video-shuffler",
+  "version": "1.0.0",
+  "description": "Randomly shuffle and play videos from selected folders",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build-mac": "electron-builder --mac",
+    "build-win": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.videoshuffler.app",
+    "productName": "Video Shuffler",
+    "directories": { "output": "dist" },
+    "files": ["src/**/*", "assets/**/*", "package.json"],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["universal"] },
+        { "target": "zip", "arch": ["universal"] }
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.entertainment",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "Video Shuffler",
+      "contents": [
+        { "x": 150, "y": 185, "type": "file" },
+        { "x": 390, "y": 185, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "win": {
+      "target": [
+        { "target": "nsis",     "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}

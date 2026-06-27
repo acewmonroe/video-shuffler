@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; media-src 'self' file: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Video Shuffler</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="titlebar-drag"></div>
+
+<div class="app-layout">
+
+  <!-- ── LEFT SIDEBAR ── -->
+  <aside class="sidebar">
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="folders">📁 Folders</button>
+      <button class="tab-btn" data-tab="youtube">▶ YouTube Sync</button>
+    </div>
+
+    <!-- FOLDERS TAB -->
+    <div class="tab-panel active" id="tab-folders">
+      <div class="panel-header">
+        <span>Local Folders</span>
+        <span class="badge" id="folderCount">0</span>
+      </div>
+      <div class="folder-list" id="folderList">
+        <div class="empty-state">
+          <div class="empty-icon">📂</div>
+          <p>Add folders below, then check<br>the ones to shuffle.</p>
+        </div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="btn btn-secondary" id="addFolderBtn">➕ Add Folder</button>
+        <button class="btn btn-primary"   id="startBtn" disabled>▶ Start Shuffle</button>
+        <button class="btn btn-ghost"     id="stopBtn" style="display:none">⏹ Stop</button>
+      </div>
+    </div>
+
+    <!-- YOUTUBE SYNC TAB -->
+    <div class="tab-panel" id="tab-youtube">
+
+      <!-- yt-dlp missing -->
+      <div id="ytdlpMissing" style="display:none">
+        <div class="setup-guide">
+          <div class="setup-icon">⚠️</div>
+          <h3>yt-dlp Required</h3>
+          <p>YouTube Sync needs <strong>yt-dlp</strong> and <strong>ffmpeg</strong>. Follow the steps for your system:</p>
+
+          <div id="setupMac" style="display:none">
+            <p style="margin-top:6px"><strong>Mac:</strong></p>
+            <ol>
+              <li>Install Homebrew (if not installed):<br>
+                <code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code>
+              </li>
+              <li>Then install yt-dlp and ffmpeg:<br>
+                <code>brew install yt-dlp ffmpeg</code>
+              </li>
+            </ol>
+          </div>
+
+          <div id="setupWin" style="display:none">
+            <p style="margin-top:6px"><strong>Windows:</strong></p>
+            <ol>
+              <li>Download <strong>yt-dlp.exe</strong> from:<br>
+                <code>https://github.com/yt-dlp/yt-dlp/releases/latest</code><br>
+                Save it to: <code>C:\yt-dlp\yt-dlp.exe</code>
+              </li>
+              <li>Download <strong>ffmpeg</strong> from:<br>
+                <code>https://www.gyan.dev/ffmpeg/builds/</code><br>
+                Get "ffmpeg-release-essentials.zip", extract it,<br>
+                copy <code>ffmpeg.exe</code> into <code>C:\yt-dlp\</code>
+              </li>
+              <li>Add <code>C:\yt-dlp</code> to your system PATH:<br>
+                Search "Environment Variables" in Start → Edit the system environment variables → Environment Variables → select Path → Edit → New → type <code>C:\yt-dlp</code> → OK
+              </li>
+            </ol>
+          </div>
+
+          <button class="btn btn-primary" id="recheckYtdlp" style="margin-top:8px">🔄 Re-check</button>
+        </div>
+      </div>
+
+      <!-- YouTube UI (shown when yt-dlp is ready) -->
+      <div id="ytdlpReady" style="display:none">
+        <div class="panel-header">
+          <span>YouTube Playlists</span>
+          <span class="badge" id="playlistCount">0</span>
+        </div>
+        <div class="playlist-list" id="playlistList">
+          <div class="empty-state">
+            <div class="empty-icon">▶</div>
+            <p>Add a YouTube playlist below.<br>Works with public or unlisted.</p>
+          </div>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn btn-secondary" id="addPlaylistBtn">➕ Add Playlist</button>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ── PLAYER ── -->
+  <div class="player-area">
+    <div class="video-wrapper" id="videoWrapper">
+
+      <div class="no-video" id="noVideo">
+        <div class="big-icon">🎬</div>
+        <h2>Nothing playing yet</h2>
+        <p>Add local folders or YouTube playlists,<br>then hit <strong>Start Shuffle</strong>.</p>
+        <div class="keyboard-hints">
+          <span>Space — play/pause</span>
+          <span>← → — seek ±10s</span>
+          <span>Shift+← → — prev/next</span>
+          <span>↑ ↓ — volume</span>
+          <span>F — fullscreen</span>
+        </div>
+      </div>
+
+      <video id="videoEl" style="display:none" playsinline></video>
+      <div class="overlay-msg" id="overlayMsg"></div>
+
+      <div class="fs-controls" id="fsControls">
+        <div class="fs-title" id="fsTitle"></div>
+        <div class="fs-bar">
+          <button class="ctrl-btn" id="fsPrev">⏮</button>
+          <button class="ctrl-btn" id="fsPlayPause">⏸</button>
+          <button class="ctrl-btn" id="fsNext">⏭</button>
+          <div class="fs-progress-wrap">
+            <div class="progress-track" id="fsProgressTrack">
+              <div class="progress-fill" id="fsProgressFill"></div>
+            </div>
+            <span id="fsTime" class="fs-time">0:00 / 0:00</span>
+          </div>
+          <button class="ctrl-btn" id="fsExitBtn">⛶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <div class="progress-row">
+        <span id="timeElapsed">0:00</span>
+        <div class="progress-track" id="progressTrack">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span id="timeTotal">0:00</span>
+      </div>
+      <div class="controls-row">
+        <button class="ctrl-btn" id="prevBtn" disabled>⏮</button>
+        <button class="ctrl-btn large" id="playPauseBtn" disabled>▶</button>
+        <button class="ctrl-btn" id="nextBtn" disabled>⏭</button>
+        <div class="now-playing">
+          <div class="now-playing-label">Now Playing</div>
+          <div class="now-playing-name"   id="nowPlayingName">—</div>
+          <div class="now-playing-folder" id="nowPlayingFolder">—</div>
+        </div>
+        <div class="right-controls">
+          <div class="volume-row">
+            <button class="ctrl-btn small" id="muteBtn">🔊</button>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.02" value="1">
+          </div>
+          <button class="ctrl-btn small" id="fullscreenBtn">⛶</button>
+          <div class="queue-badge" id="queueBadge">0 / 0</div>
+          <span class="shuffle-badge">SHUFFLE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Playlist Modal -->
+<div class="modal-backdrop" id="modalBackdrop" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add YouTube Playlist</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Playlist URL
+        <input type="text" id="playlistUrlInput" placeholder="https://www.youtube.com/playlist?list=..." />
+      </label>
+      <label>Download folder
+        <div class="folder-pick-row">
+          <input type="text" id="playlistFolderInput" placeholder="Choose a folder…" readonly />
+          <button class="btn btn-secondary small" id="pickPlaylistFolder">Browse</button>
+        </div>
+      </label>
+      <div id="playlistFetchStatus" class="fetch-status" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"   id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalConfirm" disabled>Add &amp; Sync</button>
+    </div>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
